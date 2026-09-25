@@ -1,0 +1,64 @@
+{
+  "name": "codepulse-vscode",
+  "displayName": "CodePulse",
+  "description": "Local-first, agent-native code intelligence for VS Code — search, symbol navigation, references, and impact analysis, powered by a local CodePulse server.",
+  "version": "0.1.0",
+  "publisher": "codepulse",
+  "private": true,
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "codepulse.setApiKey",
+        "title": "CodePulse: Set API Key"
+      },
+      {
+        "command": "codepulse.checkConnection",
+        "title": "CodePulse: Check Server Connection"
+      },
+      {
+        "command": "codepulse.startServer",
+        "title": "CodePulse: Start Local Server"
+      }
+    ],
+    "configuration": {
+      "title": "CodePulse",
+      "properties": {
+        "codepulse.serverUrl": {
+          "type": "string",
+          "default": "http://127.0.0.1:8000",
+          "description": "Base URL of the CodePulse REST API server."
+        },
+        "codepulse.autoLaunchServer": {
+          "type": "boolean",
+          "default": true,
+          "description": "If no CodePulse server is reachable when a workspace opens, offer to launch one locally (`codepulse serve`)."
+        },
+        "codepulse.serverCommand": {
+          "type": "string",
+          "default": "codepulse",
+          "description": "Command used to launch the local CodePulse server. Must be on PATH, or an absolute path to the codepulse executable."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "vscode:prepublish": "npm run compile"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/vscode": "^1.85.0",
+    "typescript": "^5.4.0"
+  }
+}
