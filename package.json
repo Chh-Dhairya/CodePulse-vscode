@@ -6,7 +6,7 @@
   "publisher": "codepulse",
   "private": true,
   "engines": {
-    "vscode": "^1.85.0"
+    "vscode": "^1.101.0"
   },
   "categories": [
     "Other"
@@ -83,6 +83,12 @@
         }
       ]
     },
+    "mcpServerDefinitionProviders": [
+      {
+        "id": "codepulse.mcpServers",
+        "label": "CodePulse"
+      }
+    ],
     "configuration": {
       "title": "CodePulse",
       "properties": {
@@ -111,7 +117,7 @@
   },
   "devDependencies": {
     "@types/node": "^20.11.0",
-    "@types/vscode": "^1.85.0",
+    "@types/vscode": "^1.101.0",
     "typescript": "^5.4.0"
   }
 }

@@ -2,7 +2,7 @@
 
 Bring [CodePulse](https://github.com/) — a local-first, agent-native code intelligence engine — into VS Code. This extension is a thin presentation layer over a CodePulse REST server running on your own machine; it never re-implements search, ranking, or graph logic itself, only calls the same API the CLI and MCP server already use.
 
-**Status: Phase 2 (core navigation).** This is an early, in-progress build. What exists today:
+**Status: Phase 3 (MCP integration).** This is an early, in-progress build. What exists today:
 
 - Detects a running local CodePulse server, or offers to launch one (`codepulse serve`).
 - Stores your API key securely (VS Code's `SecretStorage`, never a plain settings file).
@@ -13,11 +13,13 @@ Bring [CodePulse](https://github.com/) — a local-first, agent-native code inte
 - CodeLens above every symbol showing "N callers · M callees"; click it for a browsable impact-analysis list.
 - Sidebar views (CodePulse icon in the Activity Bar) — **References** (direct callers/subclasses) and **Similar Code** — both follow the cursor.
 - **CodePulse: Module Structure** — browse the repository's module clusters.
+- Registers CodePulse's MCP server (`codepulse serve --mcp`) with VS Code automatically — any MCP-aware assistant in the editor (Copilot Chat, Claude, Cline, etc.) gets CodePulse's tools without separate setup.
 
-MCP integration and Marketplace packaging are planned for later phases — not implemented yet.
+Marketplace packaging is planned for a later phase — not implemented yet.
 
 ## Requirements
 
+- **VS Code 1.101 or newer** — this extension's MCP integration uses the `vscode.lm.registerMcpServerDefinitionProvider` API, stabilized in that release.
 - A working [CodePulse](../CodePulse) installation, reachable via the `codepulse` command on your `PATH` (or configure `codepulse.serverCommand` to an absolute path).
 - An API key for the repository you want to use — create one with the CodePulse CLI, or via `POST /v1/admin/keys` if you already have an admin-role key for the target repository.
 
@@ -38,6 +40,10 @@ MCP integration and Marketplace packaging are planned for later phases — not i
 | `codepulse.serverCommand` | `codepulse` | Command used to launch the local server (`<command> serve`). |
 
 Your API key is **not** a setting — it's stored via VS Code's `SecretStorage`, set through the **CodePulse: Set API Key** command.
+
+## MCP integration
+
+Once an API key is set, this extension registers CodePulse as an MCP server provider with VS Code — no separate configuration needed. Any MCP-aware chat participant (GitHub Copilot Chat, Claude, Cline, etc.) can then call CodePulse's tools directly. Under the hood, VS Code starts `codepulse serve --mcp` itself (a separate, self-contained process from the REST server this extension may also launch); your API key is passed to it via an environment variable, never a command-line argument, so it isn't visible in a process listing on your machine.
 
 ## Development
 

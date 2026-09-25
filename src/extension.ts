@@ -13,6 +13,7 @@ import { ActiveSymbolTracker } from "./activeSymbolTracker";
 import { registerReferencesView } from "./referencesView";
 import { registerSimilarCodeView } from "./similarView";
 import { registerModuleStructureCommand } from "./moduleStructure";
+import { registerMcpProvider, CodePulseMcpServerDefinitionProvider } from "./mcpProvider";
 
 /**
  * Phase 1 (foundation): activation (detect or offer to launch a local
@@ -25,11 +26,17 @@ import { registerModuleStructureCommand } from "./moduleStructure";
  * Structure command -- every one a thin caller of an already-existing
  * CodePulse REST endpoint, never a reimplementation of
  * retrieval/ranking/graph logic client-side (§23).
+ *
+ * Phase 3 (MCP integration): registers CodePulse's existing
+ * `codepulse serve --mcp` as a discoverable MCP server inside VS Code,
+ * so any MCP-aware assistant in the editor gets CodePulse's tools
+ * automatically -- no new retrieval logic, just wiring (`mcpProvider.ts`).
  */
 
 let serverManager: ServerManager | undefined;
 let statusBar: StatusBarController | undefined;
 let activeSymbolTracker: ActiveSymbolTracker | undefined;
+let mcpProvider: CodePulseMcpServerDefinitionProvider | undefined;
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
   const output = vscode.window.createOutputChannel("CodePulse");
@@ -53,6 +60,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       const saved = await auth.setApiKeyInteractive();
       if (saved) {
         await refreshConnectionState(client, output);
+        mcpProvider?.notifyApiKeyChanged();
       }
     }),
     vscode.commands.registerCommand("codepulse.checkConnection", () => checkConnection(client, output)),
@@ -85,6 +93,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   context.subscriptions.push(activeSymbolTracker);
   registerReferencesView(context, client, activeSymbolTracker);
   registerSimilarCodeView(context, client, activeSymbolTracker);
+
+  mcpProvider = registerMcpProvider(context, auth);
 
   await initializeConnection(client, output);
 }
