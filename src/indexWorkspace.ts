@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
 import { CodePulseClient, JobStatus } from "./client";
+import { pickWorkspaceFolder } from "./workspaceRepo";
 
 /**
  * "CodePulse: Index Workspace" -> `POST /v1/repositories/index`, then
@@ -18,9 +19,8 @@ export function registerIndexWorkspaceCommand(context: vscode.ExtensionContext, 
 }
 
 async function runIndexWorkspace(client: CodePulseClient): Promise<void> {
-  const folder = vscode.workspace.workspaceFolders?.[0];
+  const folder = await pickWorkspaceFolder("Which repository do you want to index?");
   if (!folder) {
-    vscode.window.showWarningMessage("CodePulse: open a workspace folder to index.");
     return;
   }
 

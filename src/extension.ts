@@ -3,7 +3,7 @@ import { CodePulseClient } from "./client";
 import { ServerManager } from "./serverManager";
 import { AuthManager } from "./auth";
 import { StatusBarController } from "./statusBar";
-import { resolveWorkspaceRepository, SUPPORTED_LANGUAGE_SELECTOR } from "./workspaceRepo";
+import { resolveWorkspaceRepository, activeOrFirstWorkspaceFolder, SUPPORTED_LANGUAGE_SELECTOR } from "./workspaceRepo";
 import { registerSearchCommand } from "./search";
 import { registerIndexWorkspaceCommand } from "./indexWorkspace";
 import { CodePulseHoverProvider } from "./hoverProvider";
@@ -96,6 +96,17 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
   mcpProvider = registerMcpProvider(context, auth);
 
+  // Phase 4 -- multi-root workspace support: in a workspace with more
+  // than one open folder, the status bar should reflect whichever
+  // repository the user is actually LOOKING AT right now, not always
+  // the first folder. Re-checking on every editor switch keeps that
+  // accurate as the user moves between two open repositories.
+  context.subscriptions.push(
+    vscode.window.onDidChangeActiveTextEditor(() => {
+      void refreshConnectionState(client, output);
+    }),
+  );
+
   await initializeConnection(client, output);
 }
 
@@ -147,16 +158,20 @@ async function checkConnection(client: CodePulseClient, output: vscode.OutputCha
 }
 
 /**
- * Once the server is known reachable, resolves the current workspace's
- * own indexed-repository entry (if any) by matching `RepositoryModel.
- * url` -- the absolute local path for a locally-indexed repository --
- * against the open workspace folder's own path, via `GET
- * /v1/repositories` (Phase 0). Shows a real, measured symbol count in
- * the status bar when a match is found, "not indexed" when the
- * workspace isn't in the list at all -- never a fabricated number.
+ * Once the server is known reachable, resolves the CURRENTLY RELEVANT
+ * workspace folder's own indexed-repository entry (if any) by matching
+ * `RepositoryModel.url` -- the absolute local path for a
+ * locally-indexed repository -- against that folder's own path, via
+ * `GET /v1/repositories` (Phase 0). "Currently relevant" is the active
+ * editor's own folder when one is open (Phase 4 -- so the status bar
+ * follows you between two open repositories in a multi-root
+ * workspace), falling back to the first folder otherwise. Shows a
+ * real, measured symbol count in the status bar when a match is found,
+ * "not indexed" when the folder isn't in the list at all -- never a
+ * fabricated number.
  */
 async function refreshConnectionState(client: CodePulseClient, output: vscode.OutputChannel): Promise<void> {
-  const folder = vscode.workspace.workspaceFolders?.[0];
+  const folder = activeOrFirstWorkspaceFolder();
   if (!folder) {
     statusBar?.setState("connected");
     return;

@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import { CodePulseClient } from "./client";
-import { resolveWorkspaceRepository } from "./workspaceRepo";
+import { pickWorkspaceFolder, resolveWorkspaceRepositoryDetailed, explainUnresolvedWorkspace } from "./workspaceRepo";
 
 /**
  * "CodePulse: Module Structure" -> `GET /v1/repositories/{id}/modules`,
@@ -16,19 +16,17 @@ export function registerModuleStructureCommand(context: vscode.ExtensionContext,
 }
 
 async function showModuleStructure(client: CodePulseClient): Promise<void> {
-  const folder = vscode.workspace.workspaceFolders?.[0];
+  const folder = await pickWorkspaceFolder("Which repository's module structure do you want to browse?");
   if (!folder) {
-    vscode.window.showWarningMessage("CodePulse: open a workspace folder first.");
     return;
   }
 
-  const repo = await resolveWorkspaceRepository(client, folder).catch(() => undefined);
-  if (!repo) {
-    vscode.window.showWarningMessage(
-      "CodePulse: this workspace isn't indexed yet. Run \"CodePulse: Index Workspace\" first.",
-    );
+  const resolution = await resolveWorkspaceRepositoryDetailed(client, folder);
+  if (resolution.status !== "found") {
+    await explainUnresolvedWorkspace(resolution.status, folder.name);
     return;
   }
+  const repo = resolution.repo;
 
   let modules;
   try {
