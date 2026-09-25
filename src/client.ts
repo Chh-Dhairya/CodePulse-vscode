@@ -51,6 +51,106 @@ export interface IndexStatus {
   embedding_model: string;
 }
 
+export interface IndexJobHandle {
+  job_id: string;
+  repository_id: number;
+  status: string;
+  url: string;
+}
+
+export interface JobStatus {
+  job_id: string;
+  repository_id: number;
+  status: string;
+  created_at: string | null;
+  started_at: string | null;
+  finished_at: string | null;
+  error: string | null;
+  result: unknown;
+}
+
+export interface SearchResultItem {
+  doc_id: string;
+  symbol_name: string;
+  file_path: string;
+  type: string;
+  start_line: number;
+  end_line: number;
+  signature: string | null;
+  docstring: string | null;
+  snippet: string | null;
+  language: string | null;
+  relevance_score: number;
+  keyword_score: number;
+  vector_score: number;
+  embedding_distance: number;
+  graph_score: number;
+}
+
+export interface SearchResponse {
+  results: SearchResultItem[];
+  execution_time_ms: number;
+  query: string;
+  search_type: string;
+}
+
+export interface SymbolDetails {
+  symbol_id: number;
+  name: string;
+  type: string;
+  file: string;
+  line_start: number;
+  line_end: number;
+  docstring: string | null;
+  source_code: string | null;
+  called_by: Array<{ symbol: string; file: string; confidence: string }>;
+  calls: Array<{ symbol: string; file: string; confidence: string }>;
+  complexity: number;
+}
+
+export interface SimilarSymbolsResponse {
+  query_symbol: { id: number; name: string };
+  similar: unknown[];
+}
+
+export interface ImpactAnalysis {
+  symbol: string;
+  direct_callers: number;
+  indirect_callers: number;
+  call_chain: unknown[];
+  dependencies: unknown[];
+  callers: { direct: unknown[]; transitive: unknown[] };
+  callees: { direct: unknown[]; transitive: unknown[] };
+}
+
+export interface ReferencesResult {
+  symbol: string;
+  callers: unknown[];
+  subclasses: unknown[];
+}
+
+export interface ModuleStructure {
+  repository_id: number;
+  clusters: Array<{ id: number; files: string[] }>;
+  ranked_by_inbound: unknown[];
+  ranked_by_outbound: unknown[];
+}
+
+export interface FileSymbol {
+  symbol_id: number;
+  name: string;
+  type: string;
+  line_start: number;
+  line_end: number;
+  complexity: number;
+}
+
+export interface FileSymbolsResult {
+  repository_id: number;
+  file: string;
+  symbols: FileSymbol[];
+}
+
 export class CodePulseApiError extends Error {
   constructor(
     message: string,
@@ -98,6 +198,62 @@ export class CodePulseClient {
     return this.request("GET", `/v1/repositories/${repositoryId}/resolve`, {
       query: { path, line: String(line) },
     }) as Promise<ResolveResult>;
+  }
+
+  /** `GET /v1/repositories/{id}/file-symbols` -- every symbol in one file, for CodeLens placement. */
+  async getFileSymbols(repositoryId: number, path: string): Promise<FileSymbolsResult> {
+    return this.request("GET", `/v1/repositories/${repositoryId}/file-symbols`, {
+      query: { path },
+    }) as Promise<FileSymbolsResult>;
+  }
+
+  /** `POST /v1/repositories/index` -- `url` is a local filesystem path (only `source: "local"` is implemented server-side). */
+  async indexRepository(localPath: string, branch = "main"): Promise<IndexJobHandle> {
+    return this.request("POST", "/v1/repositories/index", {
+      body: { source: "local", url: localPath, branch },
+    }) as Promise<IndexJobHandle>;
+  }
+
+  async getJobStatus(jobId: string): Promise<JobStatus> {
+    return this.request("GET", `/v1/jobs/${jobId}`) as Promise<JobStatus>;
+  }
+
+  async search(
+    query: string,
+    opts: { repositoryId?: number; limit?: number; searchType?: string } = {},
+  ): Promise<SearchResponse> {
+    return this.request("POST", "/v1/search", {
+      body: {
+        repository_id: opts.repositoryId,
+        query,
+        limit: opts.limit ?? 20,
+        search_type: opts.searchType ?? "hybrid",
+      },
+    }) as Promise<SearchResponse>;
+  }
+
+  async getSymbolDetails(symbolId: number): Promise<SymbolDetails> {
+    return this.request("GET", `/v1/symbols/${symbolId}`) as Promise<SymbolDetails>;
+  }
+
+  async getSimilar(symbolId: number, opts: { limit?: number; threshold?: number } = {}): Promise<SimilarSymbolsResponse> {
+    return this.request("POST", `/v1/symbols/${symbolId}/similar`, {
+      body: { limit: opts.limit ?? 10, threshold: opts.threshold ?? 0.75 },
+    }) as Promise<SimilarSymbolsResponse>;
+  }
+
+  async getImpactAnalysis(symbolId: number, depth = 3): Promise<ImpactAnalysis> {
+    return this.request("POST", `/v1/symbols/${symbolId}/impact-analysis`, {
+      body: { depth },
+    }) as Promise<ImpactAnalysis>;
+  }
+
+  async getReferences(symbolId: number): Promise<ReferencesResult> {
+    return this.request("GET", `/v1/symbols/${symbolId}/references`) as Promise<ReferencesResult>;
+  }
+
+  async getModules(repositoryId: number): Promise<ModuleStructure> {
+    return this.request("GET", `/v1/repositories/${repositoryId}/modules`) as Promise<ModuleStructure>;
   }
 
   private baseUrl(): string {

@@ -2,13 +2,19 @@
 
 Bring [CodePulse](https://github.com/) — a local-first, agent-native code intelligence engine — into VS Code. This extension is a thin presentation layer over a CodePulse REST server running on your own machine; it never re-implements search, ranking, or graph logic itself, only calls the same API the CLI and MCP server already use.
 
-**Status: Phase 1 (foundation).** This is an early, in-progress build. What exists today:
+**Status: Phase 2 (core navigation).** This is an early, in-progress build. What exists today:
 
 - Detects a running local CodePulse server, or offers to launch one (`codepulse serve`).
 - Stores your API key securely (VS Code's `SecretStorage`, never a plain settings file).
 - A status-bar indicator showing connection and indexing status for the current workspace.
+- **CodePulse: Index Workspace** — indexes the open folder, with a progress notification tracking the job to completion.
+- **CodePulse: Search** — a quick-pick over hybrid lexical + semantic + graph search; pick a result to jump to it.
+- Hover over a function/class/method to see its type, docstring, and complexity.
+- CodeLens above every symbol showing "N callers · M callees"; click it for a browsable impact-analysis list.
+- Sidebar views (CodePulse icon in the Activity Bar) — **References** (direct callers/subclasses) and **Similar Code** — both follow the cursor.
+- **CodePulse: Module Structure** — browse the repository's module clusters.
 
-Search, symbol hover, references, impact analysis, and similar-code panels are planned for later phases — not implemented yet.
+MCP integration and Marketplace packaging are planned for later phases — not implemented yet.
 
 ## Requirements
 

@@ -3,20 +3,33 @@ import { CodePulseClient } from "./client";
 import { ServerManager } from "./serverManager";
 import { AuthManager } from "./auth";
 import { StatusBarController } from "./statusBar";
+import { resolveWorkspaceRepository, SUPPORTED_LANGUAGE_SELECTOR } from "./workspaceRepo";
+import { registerSearchCommand } from "./search";
+import { registerIndexWorkspaceCommand } from "./indexWorkspace";
+import { CodePulseHoverProvider } from "./hoverProvider";
+import { CodePulseCodeLensProvider } from "./codeLensProvider";
+import { registerShowImpactCommand } from "./impactPanel";
+import { ActiveSymbolTracker } from "./activeSymbolTracker";
+import { registerReferencesView } from "./referencesView";
+import { registerSimilarCodeView } from "./similarView";
+import { registerModuleStructureCommand } from "./moduleStructure";
 
 /**
- * Phase 1 (foundation) of the CodePulse VS Code extension, per
- * CODEPULSE_CLIENT_STRATEGY.md's own plan: activation (detect or offer
- * to launch a local server), settings, API-key storage via
- * SecretStorage, and a status-bar indexing indicator. Deliberately does
- * NOT implement search, hover, CodeLens, or any other Phase 2+ feature
- * yet -- those are separate, later milestones, each its own thin
- * caller of an already-existing CodePulse REST endpoint, never a
- * reimplementation of retrieval/ranking/graph logic client-side (§23).
+ * Phase 1 (foundation): activation (detect or offer to launch a local
+ * server), settings, API-key storage via SecretStorage, a status-bar
+ * indexing indicator.
+ *
+ * Phase 2 (core navigation), per CODEPULSE_CLIENT_STRATEGY.md's own
+ * plan: Index Workspace / Search commands, a hover provider, a CodeLens
+ * provider, References/Similar Code sidebar TreeViews, and a Module
+ * Structure command -- every one a thin caller of an already-existing
+ * CodePulse REST endpoint, never a reimplementation of
+ * retrieval/ranking/graph logic client-side (§23).
  */
 
 let serverManager: ServerManager | undefined;
 let statusBar: StatusBarController | undefined;
+let activeSymbolTracker: ActiveSymbolTracker | undefined;
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
   const output = vscode.window.createOutputChannel("CodePulse");
@@ -58,12 +71,28 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     }),
   );
 
+  registerSearchCommand(context, client);
+  registerIndexWorkspaceCommand(context, client);
+  registerModuleStructureCommand(context, client);
+  registerShowImpactCommand(context, client);
+
+  context.subscriptions.push(
+    vscode.languages.registerHoverProvider(SUPPORTED_LANGUAGE_SELECTOR, new CodePulseHoverProvider(client)),
+    vscode.languages.registerCodeLensProvider(SUPPORTED_LANGUAGE_SELECTOR, new CodePulseCodeLensProvider(client)),
+  );
+
+  activeSymbolTracker = new ActiveSymbolTracker(client);
+  context.subscriptions.push(activeSymbolTracker);
+  registerReferencesView(context, client, activeSymbolTracker);
+  registerSimilarCodeView(context, client, activeSymbolTracker);
+
   await initializeConnection(client, output);
 }
 
 export function deactivate(): void {
   serverManager?.dispose();
   statusBar?.dispose();
+  activeSymbolTracker?.dispose();
 }
 
 async function initializeConnection(client: CodePulseClient, output: vscode.OutputChannel): Promise<void> {
@@ -124,8 +153,7 @@ async function refreshConnectionState(client: CodePulseClient, output: vscode.Ou
   }
 
   try {
-    const repos = await client.listRepositories();
-    const match = repos.find((r) => normalizePath(r.url) === normalizePath(folder.uri.fsPath));
+    const match = await resolveWorkspaceRepository(client, folder);
     if (match) {
       statusBar?.setState("connected", `${match.symbol_count} symbols`);
     } else {
@@ -139,8 +167,4 @@ async function refreshConnectionState(client: CodePulseClient, output: vscode.Ou
     output.appendLine(`Could not list repositories: ${err?.message ?? err}`);
     statusBar?.setState("connected");
   }
-}
-
-function normalizePath(p: string): string {
-  return p.replace(/\\/g, "/").replace(/\/+$/, "").toLowerCase();
 }

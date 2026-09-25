@@ -28,8 +28,61 @@
       {
         "command": "codepulse.startServer",
         "title": "CodePulse: Start Local Server"
+      },
+      {
+        "command": "codepulse.indexWorkspace",
+        "title": "CodePulse: Index Workspace"
+      },
+      {
+        "command": "codepulse.search",
+        "title": "CodePulse: Search"
+      },
+      {
+        "command": "codepulse.moduleStructure",
+        "title": "CodePulse: Module Structure"
+      },
+      {
+        "command": "codepulse.showImpact",
+        "title": "CodePulse: Show Impact Analysis"
+      },
+      {
+        "command": "codepulse.openReferenceFile",
+        "title": "CodePulse: Open Reference File"
       }
     ],
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "codepulse.showImpact",
+          "when": "false"
+        },
+        {
+          "command": "codepulse.openReferenceFile",
+          "when": "false"
+        }
+      ]
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "codepulse",
+          "title": "CodePulse",
+          "icon": "media/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "codepulse": [
+        {
+          "id": "codepulse.references",
+          "name": "References"
+        },
+        {
+          "id": "codepulse.similarCode",
+          "name": "Similar Code"
+        }
+      ]
+    },
     "configuration": {
       "title": "CodePulse",
       "properties": {
