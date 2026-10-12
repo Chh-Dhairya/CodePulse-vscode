@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import * as cp from "child_process";
 import { CodePulseClient } from "./client";
+import { serveArgsForUrl } from "./serverArgs";
 
 /**
  * Detects whether a CodePulse server is already reachable at the
@@ -66,9 +67,19 @@ export class ServerManager implements vscode.Disposable {
       const command = config.get<string>("serverCommand", "codepulse");
       const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
 
-      this.output.appendLine(`Launching local CodePulse server: ${command} serve`);
+      // Listen where the extension will look: derive host/port from serverUrl
+      // (a bare `serve` always binds 8000, which broke any other port).
+      const serverUrl = config.get<string>("serverUrl", "http://127.0.0.1:8000");
+      const serve = serveArgsForUrl(serverUrl);
+      if ("error" in serve) {
+        this.output.appendLine(serve.error);
+        vscode.window.showErrorMessage(`CodePulse: ${serve.error}`);
+        return false;
+      }
+
+      this.output.appendLine(`Launching local CodePulse server: ${command} ${serve.args.join(" ")}`);
       try {
-        this.launchedProcess = cp.spawn(command, ["serve"], {
+        this.launchedProcess = cp.spawn(command, serve.args, {
           cwd: workspaceFolder?.uri.fsPath,
           shell: true,
         });

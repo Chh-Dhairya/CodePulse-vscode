@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import { CodePulseClient, JobStatus } from "./client";
-import { pickWorkspaceFolder } from "./workspaceRepo";
+import { pickWorkspaceFolder, resolveWorkspaceRepository } from "./workspaceRepo";
 
 /**
  * "CodePulse: Index Workspace" -> `POST /v1/repositories/index`, then
@@ -24,9 +24,17 @@ async function runIndexWorkspace(client: CodePulseClient): Promise<void> {
     return;
   }
 
+  // The server identifies a repository by the EXACT url string it was first
+  // indexed under. VS Code reports a Windows path as `c:\...` (lowercase
+  // drive) while a CLI-indexed repository is stored as `C:\...`, so sending the
+  // raw folder path re-indexed nothing and created a duplicate repository the
+  // key could not see. When this folder already matches an indexed repository
+  // (the extension matches case/slash-insensitively), send THAT repository's
+  // stored url.
+  const existing = await resolveWorkspaceRepository(client, folder).catch(() => undefined);
   let job;
   try {
-    job = await client.indexRepository(folder.uri.fsPath);
+    job = await client.indexRepository(existing?.url ?? folder.uri.fsPath);
   } catch (err: any) {
     vscode.window.showErrorMessage(`CodePulse: could not start indexing: ${err?.message ?? err}`);
     return;
@@ -56,6 +64,9 @@ async function runIndexWorkspace(client: CodePulseClient): Promise<void> {
         }
       }
 
+      // Whether or not it succeeded, the repository list (and its symbol
+      // counts) may have changed.
+      client.invalidateRepositoryCache();
       if (status.status === "succeeded") {
         vscode.window.showInformationMessage(`CodePulse: "${folder.name}" indexed successfully.`);
       } else {

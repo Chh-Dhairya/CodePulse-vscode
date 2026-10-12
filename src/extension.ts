@@ -59,6 +59,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     vscode.commands.registerCommand("codepulse.setApiKey", async () => {
       const saved = await auth.setApiKeyInteractive();
       if (saved) {
+        // A different key can see a different set of repositories.
+        client.invalidateRepositoryCache();
         await refreshConnectionState(client, output);
         mcpProvider?.notifyApiKeyChanged();
       }

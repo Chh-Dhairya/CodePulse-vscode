@@ -151,6 +151,22 @@ export interface FileSymbolsResult {
   symbols: FileSymbol[];
 }
 
+/** Milliseconds to wait before retrying a 429, from `Retry-After` or the §21 envelope's `retry_after_seconds`. */
+async function retryAfterMs(res: Response): Promise<number> {
+  let seconds = Number(res.headers.get("retry-after"));
+  if (!Number.isFinite(seconds) || seconds <= 0) {
+    try {
+      seconds = Number(((await res.clone().json()) as any)?.error?.details?.retry_after_seconds);
+    } catch {
+      seconds = NaN;
+    }
+  }
+  if (!Number.isFinite(seconds) || seconds <= 0) {
+    seconds = 1;
+  }
+  return Math.min(Math.max(seconds * 1000, 250), RATE_LIMIT_MAX_WAIT_MS);
+}
+
 export class CodePulseApiError extends Error {
   constructor(
     message: string,
@@ -162,10 +178,24 @@ export class CodePulseApiError extends Error {
   }
 }
 
+/** How long a repository list is reused before it is fetched again. */
+export const REPOSITORY_CACHE_TTL_MS = 30_000;
+/** Rate-limit (429) retries per request, and the longest single wait. */
+export const RATE_LIMIT_MAX_RETRIES = 2;
+export const RATE_LIMIT_MAX_WAIT_MS = 5_000;
+
 export class CodePulseClient {
+  private repositoryCache:
+    | { baseUrl: string; fetchedAt: number; promise: Promise<CodePulseRepository[]> }
+    | undefined;
+
   constructor(
     private readonly getServerUrl: () => string,
     private readonly getApiKey: () => Thenable<string | undefined>,
+    // Injectable so the cache and retry logic can be unit-tested without
+    // real time passing.
+    private readonly now: () => number = Date.now,
+    private readonly sleep: (ms: number) => Promise<void> = (ms) => new Promise((r) => setTimeout(r, ms)),
   ) {}
 
   /**
@@ -192,9 +222,37 @@ export class CodePulseClient {
     }
   }
 
+  /**
+   * `GET /v1/repositories`, cached for `REPOSITORY_CACHE_TTL_MS` per server
+   * URL and shared by concurrent callers. Every hover, CodeLens batch,
+   * search and status-bar refresh resolves the workspace folder to its
+   * repository through this list; measured against a real server it was about
+   * a third of all the extension's requests, which the per-key rate limiter
+   * then counts. A failed fetch is never cached. Call
+   * `invalidateRepositoryCache` after anything that changes the list (a new
+   * API key, a finished index run).
+   */
   async listRepositories(): Promise<CodePulseRepository[]> {
-    const data = await this.request("GET", "/v1/repositories");
-    return (data.repositories ?? []) as CodePulseRepository[];
+    const baseUrl = this.baseUrl();
+    const cached = this.repositoryCache;
+    if (cached && cached.baseUrl === baseUrl && this.now() - cached.fetchedAt < REPOSITORY_CACHE_TTL_MS) {
+      return cached.promise;
+    }
+    const promise = this.request("GET", "/v1/repositories").then(
+      (data) => (data.repositories ?? []) as CodePulseRepository[],
+    );
+    const entry = { baseUrl, fetchedAt: this.now(), promise };
+    this.repositoryCache = entry;
+    promise.catch(() => {
+      if (this.repositoryCache === entry) {
+        this.repositoryCache = undefined;
+      }
+    });
+    return promise;
+  }
+
+  invalidateRepositoryCache(): void {
+    this.repositoryCache = undefined;
   }
 
   async getIndexStatus(repositoryId: number): Promise<IndexStatus> {
@@ -286,18 +344,28 @@ export class CodePulseClient {
     }
 
     let res: Response;
-    try {
-      res = await fetch(url.toString(), {
-        method,
-        headers,
-        body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
-      });
-    } catch (err: any) {
-      throw new CodePulseApiError(
-        `Could not reach the CodePulse server at ${this.baseUrl()}: ${err?.message ?? err}`,
-        0,
-        undefined,
-      );
+    for (let attempt = 0; ; attempt++) {
+      try {
+        res = await fetch(url.toString(), {
+          method,
+          headers,
+          body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
+        });
+      } catch (err: any) {
+        throw new CodePulseApiError(
+          `Could not reach the CodePulse server at ${this.baseUrl()}: ${err?.message ?? err}`,
+          0,
+          undefined,
+        );
+      }
+      // The server's rate limiter rejects a request BEFORE handling it, so a
+      // 429 is safe to retry for any method. Wait as long as the server says
+      // (capped), then try again a bounded number of times.
+      if (res.status === 429 && attempt < RATE_LIMIT_MAX_RETRIES) {
+        await this.sleep(await retryAfterMs(res));
+        continue;
+      }
+      break;
     }
 
     if (!res.ok) {
