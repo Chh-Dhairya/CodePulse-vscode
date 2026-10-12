@@ -169,16 +169,23 @@ export class CodePulseClient {
   ) {}
 
   /**
-   * `GET /health/ready` -- deliberately never sends an API key (the
+   * `GET /health/live` -- deliberately never sends an API key (the
    * server itself exempts every `/health/*` route from auth, per §21;
    * this mirrors that on the client side rather than assuming it).
    * Returns `false` for ANY failure (unreachable, non-2xx, network
    * error) -- callers only ever need "is it up," not why it isn't.
+   *
+   * Uses `/health/live`, NOT `/health/ready`: the server lazy-loads its
+   * embedding model, so a freshly started server answers `/health/ready`
+   * with 503 until the first index/semantic request, and nothing in this
+   * extension triggers that. Treating that 503 as "unreachable" made the
+   * extension report a healthy new server as disconnected (and made
+   * auto-launch wait on a check that could never pass).
    */
   async health(): Promise<boolean> {
     try {
       const base = this.baseUrl();
-      const res = await fetch(`${base}/health/ready`);
+      const res = await fetch(`${base}/health/live`);
       return res.ok;
     } catch {
       return false;
