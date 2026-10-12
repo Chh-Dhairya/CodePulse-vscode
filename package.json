@@ -125,7 +125,9 @@
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
     "vscode:prepublish": "npm run compile",
-    "package": "vsce package"
+    "package": "vsce package",
+    "test": "npm run compile && node --test \"test/unit/*.test.mjs\"",
+    "test:e2e": "node test/e2e/run-all.mjs"
   },
   "devDependencies": {
     "@types/node": "^20.11.0",
