@@ -217,3 +217,17 @@ export async function waitFor(fn, pred, timeoutMs = 30000, step = 500) {
   }
   return v;
 }
+
+/**
+ * Enters the API key through the extension's real masked input box. Every scenario does this itself, so it
+ * never depends on what an earlier scenario (or an earlier run, against rebuilt fixtures with a new key) left
+ * in the profile's secret storage.
+ */
+export async function setApiKey(cdp, key) {
+  await runCommand(cdp, "CodePulse: Set API Key");
+  await waitFor(() => quickInputText(cdp), (t) => /API Key/i.test(t), 15000);
+  await cdp.insert(key);
+  await sleep(300);
+  await cdp.enter();
+  await sleep(2500);
+}

@@ -3,7 +3,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { execSync } from "node:child_process";
-import { launchCode, Cdp, writeSettings, sleep, FIXTURES, RESULTS, loadFixtures, toastText, statusBarText, clickButton, waitFor } from "../lib/cdp.mjs";
+import { launchCode, Cdp, writeSettings, sleep, FIXTURES, RESULTS, loadFixtures, toastText, statusBarText, clickButton, waitFor , setApiKey, quickInputText } from "../lib/cdp.mjs";
 
 const PORT = process.env.D1_PORT || "8201";
 const BIN_DIR = loadFixtures().binDir;
@@ -37,6 +37,8 @@ console.log("listeners before:", before.join(",") || "(none)");
 const child = launchCode(path.join(FIXTURES, "Test_Repo"), 9333, { PATH: `${BIN_DIR};${process.env.PATH}` });
 const cdp = await Cdp.connect(9333, 120000);
 try {
+  await sleep(5000);
+  await setApiKey(cdp, loadFixtures().key);
   const toast = await waitFor(() => toastText(cdp), (t) => /Start one locally/i.test(t), 40000);
   await cdp.shot("D1-01-offer");
   check("D1a no reachable server -> the extension offers to start one", /No CodePulse server is reachable/.test(toast) && /Start Server/.test(toast), toast);

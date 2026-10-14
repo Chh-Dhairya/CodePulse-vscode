@@ -2,7 +2,7 @@
 // Requires a test server already running on :8200 against the scratch DB, and the API key stored in the profile.
 import fs from "node:fs";
 import path from "node:path";
-import { launchCode, Cdp, writeSettings, sleep, FIXTURES, RESULTS, loadFixtures, runCommand, toastText, statusBarText, clickButton, waitFor } from "../lib/cdp.mjs";
+import { launchCode, Cdp, writeSettings, sleep, FIXTURES, RESULTS, loadFixtures, runCommand, toastText, statusBarText, clickButton, waitFor , setApiKey, quickInputText } from "../lib/cdp.mjs";
 
 const FX = loadFixtures();
 const results = [];
@@ -33,6 +33,7 @@ async function session(name, folder, body) {
   const cdp = await Cdp.connect(9333, 120000);
   try {
     await sleep(6000);
+    await setApiKey(cdp, FX.key);
     await body(cdp);
   } catch (e) {
     console.log("HARNESS ERROR", e.stack || e);

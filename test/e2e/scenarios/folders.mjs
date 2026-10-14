@@ -1,7 +1,7 @@
 // Session B: never-indexed folder (vsc-12). Session C: multi-root workspace (vsc-13, vsc-14).
 import fs from "node:fs";
 import path from "node:path";
-import { launchCode, Cdp, writeSettings, sleep, FIXTURES, RESULTS, loadFixtures, runCommand, openFile, toastText } from "../lib/cdp.mjs";
+import { launchCode, Cdp, writeSettings, sleep, FIXTURES, RESULTS, loadFixtures, runCommand, openFile, toastText , setApiKey, quickInputText } from "../lib/cdp.mjs";
 
 const results = [];
 function check(id, ok, evidence) {
@@ -37,6 +37,7 @@ async function session(name, target, body) {
   const qiRows = () => cdp.eval(`[...document.querySelectorAll('.quick-input-list .monaco-list-row')].map(r => r.innerText.replace(/\\s+/g,' ').trim())`);
   try {
     await sleep(6000);
+    await setApiKey(cdp, loadFixtures().key);
     await body({ cdp, statusInfo, qiText, qiRows });
   } catch (e) {
     console.log("HARNESS ERROR", e.stack || e);
