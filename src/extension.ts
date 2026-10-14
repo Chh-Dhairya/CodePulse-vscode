@@ -82,7 +82,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   );
 
   registerSearchCommand(context, client);
-  registerIndexWorkspaceCommand(context, client);
+  registerIndexWorkspaceCommand(context, client, () => refreshConnectionState(client, output));
   registerModuleStructureCommand(context, client);
   registerShowImpactCommand(context, client);
 

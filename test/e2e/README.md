@@ -22,6 +22,9 @@ C:\path\to\CodePulse\.venv\Scripts\python.exe test\e2e\setup-fixtures.py ^
 npm run test:e2e
 ```
 
+Each run rebuilds the fixtures first (the scenarios change them: Index Workspace creates a repository, keys are minted),
+so runs are repeatable. Pass `--keep-fixtures` to skip that and reuse the current state.
+
 Everything is created under `.e2e/` (gitignored): copies of the two sample projects, a throwaway database, an admin API
 key, an **isolated VS Code profile** (your own settings and extensions are not touched) and screenshots of each step in
 `.e2e/shots/`. Your real `codepulse.db` is never used. The runner starts and stops its own CodePulse server on port 8200.
@@ -39,15 +42,12 @@ fixtures must be built from that project.
 | `core` | A cold server shows as connected; the API key is entered through the real input box; the status bar shows the real symbol count; hover (and no hover on a blank line); CodeLens `N callers · M callees` and the grouped impact list it opens; Search and the jump to the right file and line; the References and Similar Code sidebars; Module Structure; the "no server is reachable" warning with Start Server. |
 | `folders` | A never-indexed folder reads "not indexed" and offers Index Workspace (a different message from "server unreachable"); a multi-root workspace asks which folder to search, and the status bar follows the active editor. |
 | `server-launch` | With no server running and a non-default `serverUrl`, the extension offers to start one, **launches it on the configured port**, and connects. |
-| `workspace-index-mcp` | Index Workspace on an indexed folder shows progress and finishes; the extension's MCP server is listed, starts, reaches Running, and its tools are discovered; Index Workspace on a never-indexed folder (known gap, below). |
+| `workspace-index-mcp` | Index Workspace on an indexed folder shows progress and finishes; the extension's MCP server is listed, starts, reaches Running, and its tools are discovered; Index Workspace on a **never-indexed** folder finishes and the folder then reads as indexed (the key that creates a repository becomes its admin, so it can follow its job and see the result). |
 
-## Known gap
+## Known gaps
 
-`E3` (Index Workspace on a **never-indexed** folder) is expected to fail and is reported as a known gap, not a
-regression. A key may create a new repository, but polling the resulting job needs a grant on that repository, which the
-creating key does not have, so the extension reports "lost track of indexing job … API key is not scoped to repository N"
-and the folder still reads "not indexed". It is a backend authorization decision, not an extension bug. When it is fixed,
-remove `E3` from `KNOWN_GAPS` in `run-all.mjs`.
+None today. A failing check that documents a tracked gap rather than a regression can be listed in `KNOWN_GAPS` in
+`run-all.mjs`; it is then reported as a known gap instead of a failure.
 
 ## Not covered
 

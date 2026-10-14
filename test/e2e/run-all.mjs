@@ -8,12 +8,24 @@ import { fileURLToPath } from "node:url";
 import { CODE_EXE, EXT_DEV, FIXTURES, loadFixtures } from "./lib/cdp.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
-const fx = loadFixtures();
+let fx = loadFixtures();
 
-/** Failures that document a KNOWN, tracked gap rather than a regression (id -> where it is tracked). */
-const KNOWN_GAPS = {
-  E3: "Index Workspace on a never-indexed folder cannot finish with a scoped key (backend authorization design; see README)",
-};
+// The scenarios CHANGE the fixtures (Index Workspace creates a repository, keys are minted), so every run starts
+// from freshly built ones. `--keep-fixtures` skips this (e.g. to debug a single scenario on the current state).
+const keepFixtures = process.argv.includes("--keep-fixtures");
+if (!keepFixtures) {
+  const rebuild = spawnSync(
+    path.join(fx.binDir, "python.exe"),
+    [path.join(HERE, "setup-fixtures.py"), "--test-repo", fx.testRepo, "--test-repo-other", fx.testRepoOther, "--port", String(fx.port)],
+    { encoding: "utf8" },
+  );
+  if (rebuild.status !== 0) { console.error("Could not rebuild the fixtures:\n" + (rebuild.stdout || "") + (rebuild.stderr || "")); process.exit(2); }
+  fx = loadFixtures();
+  console.log("fixtures rebuilt");
+}
+
+/** Failures that document a KNOWN, tracked gap rather than a regression (id -> where it is tracked). None today. */
+const KNOWN_GAPS = {};
 
 // needsServer: a test server is started before the scenario and stopped after it.
 const SCENARIOS = [
@@ -57,7 +69,7 @@ if (!fs.existsSync(CODE_EXE)) problems.push(`VS Code not found at ${CODE_EXE} (s
 if (!fs.existsSync(path.join(fx.binDir, "codepulse.exe"))) problems.push(`codepulse.exe not found in ${fx.binDir}`);
 if (problems.length) { console.error("Cannot run:\n - " + problems.join("\n - ")); process.exit(2); }
 
-const only = process.argv.slice(2);
+const only = process.argv.slice(2).filter((a) => !a.startsWith("--"));
 const chosen = SCENARIOS.filter((s) => only.length === 0 || only.includes(s.name));
 let passed = 0, failed = 0, known = 0;
 const failures = [];

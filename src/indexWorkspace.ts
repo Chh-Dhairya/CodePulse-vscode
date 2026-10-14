@@ -12,13 +12,17 @@ import { pickWorkspaceFolder, resolveWorkspaceRepository } from "./workspaceRepo
 const TERMINAL_STATUSES = new Set(["succeeded", "failed"]);
 const POLL_INTERVAL_MS = 1500;
 
-export function registerIndexWorkspaceCommand(context: vscode.ExtensionContext, client: CodePulseClient): void {
+export function registerIndexWorkspaceCommand(
+  context: vscode.ExtensionContext,
+  client: CodePulseClient,
+  onIndexFinished: () => Promise<void> = async () => {},
+): void {
   context.subscriptions.push(
-    vscode.commands.registerCommand("codepulse.indexWorkspace", () => runIndexWorkspace(client)),
+    vscode.commands.registerCommand("codepulse.indexWorkspace", () => runIndexWorkspace(client, onIndexFinished)),
   );
 }
 
-async function runIndexWorkspace(client: CodePulseClient): Promise<void> {
+async function runIndexWorkspace(client: CodePulseClient, onIndexFinished: () => Promise<void>): Promise<void> {
   const folder = await pickWorkspaceFolder("Which repository do you want to index?");
   if (!folder) {
     return;
@@ -67,6 +71,8 @@ async function runIndexWorkspace(client: CodePulseClient): Promise<void> {
       // Whether or not it succeeded, the repository list (and its symbol
       // counts) may have changed.
       client.invalidateRepositoryCache();
+      // Re-resolve the workspace so the status bar stops saying "not indexed".
+      await onIndexFinished().catch(() => undefined);
       if (status.status === "succeeded") {
         vscode.window.showInformationMessage(`CodePulse: "${folder.name}" indexed successfully.`);
       } else {

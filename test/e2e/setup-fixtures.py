@@ -22,8 +22,15 @@ import argparse
 import json
 import os
 import shutil
+import stat
 import sys
 from pathlib import Path
+
+
+def _clear_readonly_and_retry(func, path, _exc_info) -> None:
+    """git marks object files read-only; on Windows rmtree refuses to delete those."""
+    os.chmod(path, stat.S_IWRITE)
+    func(path)
 
 
 def main() -> int:
@@ -40,7 +47,7 @@ def main() -> int:
     if fixtures.exists():
         if fixtures.name != "fixtures" or workdir not in fixtures.parents:
             raise SystemExit(f"refusing to delete {fixtures}")
-        shutil.rmtree(fixtures)
+        shutil.rmtree(fixtures, onerror=_clear_readonly_and_retry)
     fixtures.mkdir(parents=True)
 
     skip = shutil.ignore_patterns("codepulse.db", "codepulse.toml", ".venv", "node_modules", "__pycache__", ".pytest_cache")
@@ -74,7 +81,18 @@ def main() -> int:
     storage.engine.dispose()
 
     (fixtures / "fixtures.json").write_text(
-        json.dumps({"port": args.port, "binDir": os.path.dirname(sys.executable), "dbUrl": db_url, "repositoryIds": ids}, indent=2),
+        json.dumps(
+            {
+                "port": args.port,
+                "binDir": os.path.dirname(sys.executable),
+                "dbUrl": db_url,
+                "repositoryIds": ids,
+                # remembered so `run-all.mjs` can rebuild the fixtures before every run
+                "testRepo": str(Path(args.test_repo).resolve()),
+                "testRepoOther": str(Path(args.test_repo_other).resolve()),
+            },
+            indent=2,
+        ),
         encoding="utf-8",
     )
     print(f"fixtures ready in {fixtures}")

@@ -149,7 +149,15 @@ export async function runCommand(cdp, title) {
   await cdp.f1();
   await sleep(600);
   await cdp.insert(title);
-  await sleep(700);
+  // Press Enter only once the palette's top row IS this command; a fixed delay raced the filter
+  // and sometimes executed nothing (or the wrong entry).
+  const want = title.toLowerCase();
+  const t0 = Date.now();
+  while (Date.now() - t0 < 5000) {
+    const top = await cdp.eval(`(() => { const r = document.querySelector('.quick-input-list .monaco-list-row'); return r ? r.innerText.toLowerCase() : ''; })()`);
+    if (top.includes(want)) break;
+    await sleep(150);
+  }
   await cdp.enter();
 }
 
