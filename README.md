@@ -2,7 +2,7 @@
 
 Bring CodePulse — a local-first, agent-native code intelligence engine — into VS Code. This extension is a thin presentation layer over a CodePulse REST server running on your own machine; it never re-implements search, ranking, or graph logic itself, only calls the same API the CLI and MCP server already use.
 
-**Status: Phase 4 (polish).** This is an early, in-progress build. What exists today:
+**Status: preview (0.1.0).** The features below work and are covered by unit tests and a real-VS-Code end-to-end suite, but the extension has not had wide use yet, so expect rough edges. What it does:
 
 - Detects a running local CodePulse server, or offers to launch one (`codepulse serve`).
 - Stores your API key securely (VS Code's `SecretStorage`, never a plain settings file).
@@ -21,7 +21,7 @@ Not yet published to the Marketplace — see [Publishing](#publishing) below.
 ## Requirements
 
 - **VS Code 1.101 or newer** — this extension's MCP integration uses the `vscode.lm.registerMcpServerDefinitionProvider` API, stabilized in that release.
-- A working CodePulse backend installation, reachable via the `codepulse` command on your `PATH` (or configure `codepulse.serverCommand` to an absolute path).
+- A working CodePulse backend installation (the `codepulse-engine` Python package, which provides the `codepulse` command), reachable on your `PATH` (or configure `codepulse.serverCommand` to an absolute path).
 - An API key for the repository you want to use — create one with the CodePulse CLI, or via `POST /v1/admin/keys` if you already have an admin-role key for the target repository.
 
 ## Getting started

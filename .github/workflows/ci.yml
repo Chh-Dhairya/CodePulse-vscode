@@ -1,0 +1,38 @@
+# CodePulse VS Code extension CI.
+#
+# Runs the fast unit tests and builds the .vsix. The end-to-end suite
+# (`npm run test:e2e`) drives a real VS Code window on Windows and is run by
+# hand; it is not part of CI.
+#
+# Status: validated locally (YAML and the same commands on Windows); not yet
+# observed running on GitHub Actions.
+
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Compile, unit tests, package
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22  # @vscode/vsce 4 requires Node >= 22
+          cache: npm
+      - run: npm ci
+      - name: Compile and run the unit tests
+        run: npm test
+      - name: Package the extension
+        run: npx vsce package
+      - uses: actions/upload-artifact@v4
+        with:
+          name: codepulse-vscode-vsix
+          path: "*.vsix"

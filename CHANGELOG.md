@@ -4,6 +4,12 @@ All notable changes to the CodePulse VS Code extension are documented in this fi
 
 ## [Unreleased]
 
+Publishing preparation:
+
+- Marked as a Marketplace preview release (`preview: true`); the README status line now says so instead of describing an in-progress phase.
+- Upgraded the dev-only packaging tool `@vscode/vsce` to 4.x, which clears the 6 high-severity `npm audit` advisories (all in its dependency chain; the extension has no runtime dependencies). `vsce` 4 needs Node 22 or newer.
+- Added a GitHub Actions workflow: compile, unit tests, and `vsce package`.
+
 Found and fixed by driving the extension in a real VS Code window (see `test/e2e/README.md`):
 
 - Fixed: a freshly started server was shown as disconnected. Reachability now uses `/health/live`; `/health/ready` answers 503 until the server's lazily loaded embedding model loads, and nothing in the extension triggers that, so a healthy new server looked down and auto-launch waited on a check that could never pass.
