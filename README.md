@@ -1,74 +1,87 @@
 # CodePulse for VS Code
 
-Bring CodePulse — a local-first, agent-native code intelligence engine — into VS Code. This extension is a thin presentation layer over a CodePulse REST server running on your own machine; it never re-implements search, ranking, or graph logic itself, only calls the same API the CLI and MCP server already use.
+Search, navigate and assess the impact of changes in a codebase from inside VS Code, using [CodePulse](https://pypi.org/project/codepulse-engine/): a local-first code intelligence engine that combines keyword search, semantic search and a call graph. Everything runs on your own machine. This extension is a thin front end over a CodePulse server on your computer; it never sends your code anywhere else.
 
-**Status: preview (0.1.0).** The features below work and are covered by unit tests and a real-VS-Code end-to-end suite, but the extension has not had wide use yet, so expect rough edges. What it does:
+**Status: preview (0.1.0).** The features below work and are covered by unit tests and a real-VS-Code end-to-end suite, but the extension has not had wide use yet, so expect rough edges (see [Known limitations](#known-limitations)).
 
-- Detects a running local CodePulse server, or offers to launch one (`codepulse serve`).
-- Stores your API key securely (VS Code's `SecretStorage`, never a plain settings file).
-- A status-bar indicator showing connection and indexing status for the repository you're currently looking at (follows the active editor in a multi-root workspace).
-- **CodePulse: Index Workspace** — indexes a workspace folder (prompts you to choose one if more than one is open), with a progress notification tracking the job to completion.
-- **CodePulse: Search** — a quick-pick over hybrid lexical + semantic + graph search; pick a result to jump to it.
-- Hover over a function/class/method to see its type, docstring, and complexity.
-- CodeLens above every symbol showing "N callers · M callees"; click it for a browsable impact-analysis list.
-- Sidebar views (CodePulse icon in the Activity Bar) — **References** (direct callers/subclasses) and **Similar Code** — both follow the cursor.
+## What it does
+
+- **CodePulse: Search** — one search box over hybrid keyword + semantic + graph search; pick a result to jump to it.
+- **Hover** over a function, class or method to see its type, docstring and complexity.
+- **CodeLens** above every symbol showing "N callers · M callees"; click it for a browsable impact-analysis list.
+- **Sidebar views** (CodePulse icon in the Activity Bar): **References** (direct callers and subclasses) and **Similar Code**, both following the cursor.
 - **CodePulse: Module Structure** — browse a repository's module clusters.
-- Registers CodePulse's MCP server (`codepulse serve --mcp`) with VS Code automatically — any MCP-aware assistant in the editor (Copilot Chat, Claude, Cline, etc.) gets CodePulse's tools without separate setup.
-- Clear "server unreachable" vs. "not indexed yet" error states, each with an actionable button.
+- **CodePulse: Index Workspace** — indexes a folder (asks which one when several are open), with a progress notification.
+- A **status-bar** indicator for connection and indexing state, following the active editor in multi-root workspaces.
+- **MCP integration** — registers CodePulse's MCP server with VS Code, so MCP-aware assistants (GitHub Copilot Chat, Claude, Cline and others) get CodePulse's tools without separate setup.
+- Clear "no server reachable" and "not indexed yet" states, each with a button that fixes it.
 
-Not yet published to the Marketplace — see [Publishing](#publishing) below.
+Supported languages: Python, JavaScript and TypeScript. Files in other languages are not indexed.
 
 ## Requirements
 
-- **VS Code 1.101 or newer** — this extension's MCP integration uses the `vscode.lm.registerMcpServerDefinitionProvider` API, stabilized in that release.
-- A working CodePulse backend installation (the `codepulse-engine` Python package, which provides the `codepulse` command), reachable on your `PATH` (or configure `codepulse.serverCommand` to an absolute path).
-- An API key for the repository you want to use — create one with the CodePulse CLI, or via `POST /v1/admin/keys` if you already have an admin-role key for the target repository.
+- **VS Code 1.101 or newer** (the MCP integration uses an API stabilized in that release).
+- **The CodePulse backend**, which provides the `codepulse` command:
+
+  ```bash
+  pip install codepulse-engine
+  ```
+
+  It needs **Python 3.11 or 3.12**. The install is large (about 2.4 GB in a clean Windows test; it pulls in PyTorch), and the first time you index, it downloads a small embedding model (about 90 MB). Indexing runs on the CPU: a project of around 100 files takes a couple of minutes the first time, and later updates are much faster.
+
+  On Windows, if `pip` stops with a "path too long" error, install into a virtual environment at a short path (for example `C:\cp`) or [enable long paths](https://pip.pypa.io/warnings/enable-long-paths).
+- **An API key** for the repository you want to use. Create one with the CodePulse command line, or through the server's `POST /v1/admin/keys` endpoint if you already hold an admin key.
 
 ## Getting started
 
-1. Install this extension (from a `.vsix` for now — not yet published to the Marketplace).
-2. Open the workspace/folder you want CodePulse to understand.
+1. Install this extension and the backend (above).
+2. Open the folder you want CodePulse to understand.
 3. Run **CodePulse: Set API Key** from the Command Palette and paste in your key.
-4. If no server is running, the extension will offer to start one locally for you. You can also run **CodePulse: Start Local Server** manually, or **CodePulse: Check Server Connection** at any time.
-5. Watch the status bar (bottom left) — it shows connection state and, once a repository is indexed, its symbol count.
+4. If no server is running, the extension offers to start one for you. The prompt shows the exact command it will run. You can also run **CodePulse: Start Local Server** yourself, or **CodePulse: Check Server Connection** at any time.
+5. Run **CodePulse: Index Workspace**, then watch the status bar (bottom left): it shows the connection state and, once the folder is indexed, its symbol count.
+
+If the extension says it cannot find `codepulse`, the backend is not installed or is not on your `PATH`: install it, or set `codepulse.serverCommand` to the full path of the `codepulse` executable.
 
 ## Settings
 
 | Setting | Default | Description |
 |---|---|---|
-| `codepulse.serverUrl` | `http://127.0.0.1:8000` | Base URL of the CodePulse REST API server. |
-| `codepulse.autoLaunchServer` | `true` | Offer to launch a local server automatically if none is reachable at startup. |
-| `codepulse.serverCommand` | `codepulse` | Command used to launch the local server (`<command> serve`). |
+| `codepulse.serverUrl` | `http://127.0.0.1:8000` | Address of the CodePulse server. Your API key is sent to this address. |
+| `codepulse.autoLaunchServer` | `true` | Offer to start a local server when none is reachable. Choosing **Don't Ask Again** in the prompt sets this to `false`. |
+| `codepulse.serverCommand` | `codepulse` | The `codepulse` executable used to start the server: on `PATH`, or an absolute path. Run directly as one program, never through a shell. |
 
-Your API key is **not** a setting — it's stored via VS Code's `SecretStorage`, set through the **CodePulse: Set API Key** command.
+`codepulse.serverUrl` and `codepulse.serverCommand` are **machine-scoped**: set them in your user settings. A project's own `.vscode/settings.json` cannot change them, so a repository you open cannot choose which program the extension runs or which host receives your API key.
+
+Your API key is not a setting. It is stored in VS Code's `SecretStorage`, set through **CodePulse: Set API Key**.
+
+## Privacy and security
+
+- There is **no telemetry**. The only network traffic is between the extension and the server address you configured, which is on your own machine by default.
+- The extension never starts a program without asking, and the prompt shows the exact command line. In an **untrusted workspace** (Restricted Mode) it never starts a server and does not register its MCP server; search and navigation still work against a server that is already running.
+- Your API key is kept in `SecretStorage`. It is passed to the MCP server through an environment variable, never as a command-line argument, so it does not show up in a process listing.
 
 ## MCP integration
 
-Once an API key is set, this extension registers CodePulse as an MCP server provider with VS Code — no separate configuration needed. Any MCP-aware chat participant (GitHub Copilot Chat, Claude, Cline, etc.) can then call CodePulse's tools directly. Under the hood, VS Code starts `codepulse serve --mcp` itself (a separate, self-contained process from the REST server this extension may also launch); your API key is passed to it via an environment variable, never a command-line argument, so it isn't visible in a process listing on your machine.
+Once an API key is set, the extension registers CodePulse as an MCP server provider with VS Code. VS Code starts `codepulse serve --mcp` itself (a separate process from the REST server this extension may also launch), and any MCP-aware chat participant can then call CodePulse's tools.
+
+## Known limitations
+
+- **Tested on Windows only.** macOS and Linux have not been tested yet.
+- **Same-named methods in one file are merged in the call graph.** If two classes in a file both define `run`, the callers and callees (and the CodeLens counts) for `run` combine both. Search and navigation tell them apart.
+- **Search is approximate.** Natural-language queries usually find the right symbol, not always; keyword queries on names are the most reliable. The first index of a large project can take a while on a CPU.
+- Call-graph links are labelled with a confidence (`high`, `low`, `unresolved`), because a call like `obj.run()` does not say which `run` it means.
 
 ## Development
 
 ```bash
 npm install
 npm run compile   # or: npm run watch
+npm test          # unit tests
 ```
 
-Then press `F5` in VS Code to launch an Extension Development Host with this extension loaded.
+Press `F5` in VS Code to launch an Extension Development Host with this extension loaded. `npm run package` builds an installable `.vsix`. The real-VS-Code end-to-end suite (`npm run test:e2e`, Windows only) is described in `test/e2e/README.md`.
 
-Run `npm run package` to produce an installable `.vsix` (via `@vscode/vsce`) without publishing anything.
-
-## Relationship to the CodePulse backend
-
-This extension is deliberately a separate project/repository from the CodePulse backend itself (a different tech stack — TypeScript against the `vscode` extension API, vs. the backend's Python/FastAPI), per the CodePulse roadmap's own framing (§23, backlog item B22: "New extension repo/package"). See `CODEPULSE_CLIENT_STRATEGY.md` in the backend repository for the full plan this extension is being built against.
-
-## Publishing
-
-This extension packages cleanly (`npm run package`, using [`@vscode/vsce`](https://github.com/microsoft/vscode-vsce)) into an installable `.vsix`, but has **not** been submitted to the Marketplace. Two things only you can do, since they require your own Microsoft/Azure DevOps account and credentials:
-
-1. **Register a publisher** at [marketplace.visualstudio.com/manage](https://marketplace.visualstudio.com/manage) (or via `vsce create-publisher`) and update `publisher` in `package.json` from the current placeholder (`codepulse`) to your real, registered publisher ID.
-2. **Get a Personal Access Token** (Azure DevOps, `Marketplace (Manage)` scope) and run `vsce publish` with it, or upload the `.vsix` manually through the Marketplace management page.
-
-Also worth doing before a real submission: add a `repository` field to `package.json` once this project has a real git remote (currently local-only), and replace the placeholder MIT copyright holder in `LICENSE` if that's not who should hold it.
+This extension is deliberately a separate project from the CodePulse backend (TypeScript against the VS Code API, versus the backend's Python): see `docs/CODEPULSE_CLIENT_STRATEGY.md` in the backend repository for the plan it is built against.
 
 ## License
 

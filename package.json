@@ -26,6 +26,16 @@
   "activationEvents": [
     "onStartupFinished"
   ],
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": "limited",
+      "description": "In an untrusted workspace CodePulse still searches and navigates a server that is already running, but it never starts a server process and does not register its MCP server."
+    },
+    "virtualWorkspaces": {
+      "supported": false,
+      "description": "CodePulse indexes folders on disk and starts a local server, so it needs a real folder, not a virtual file system."
+    }
+  },
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
@@ -107,17 +117,19 @@
         "codepulse.serverUrl": {
           "type": "string",
           "default": "http://127.0.0.1:8000",
-          "description": "Base URL of the CodePulse REST API server."
+          "scope": "machine",
+          "description": "Base URL of the CodePulse REST API server. Your API key is sent to this address. Machine-scoped: set it in your user settings; a project's own .vscode/settings.json cannot change it."
         },
         "codepulse.autoLaunchServer": {
           "type": "boolean",
           "default": true,
-          "description": "If no CodePulse server is reachable when a workspace opens, offer to launch one locally (`codepulse serve`)."
+          "description": "If no CodePulse server is reachable when a workspace opens, offer to launch one locally (`codepulse serve`). The offer shows the exact command line, and \"Don't Ask Again\" turns this off."
         },
         "codepulse.serverCommand": {
           "type": "string",
           "default": "codepulse",
-          "description": "Command used to launch the local CodePulse server. Must be on PATH, or an absolute path to the codepulse executable."
+          "scope": "machine",
+          "description": "The codepulse executable used to launch the local server: on PATH, or an absolute path. It is run directly as a single program (not through a shell). Machine-scoped: set it in your user settings; a project's own .vscode/settings.json cannot change it."
         }
       }
     }

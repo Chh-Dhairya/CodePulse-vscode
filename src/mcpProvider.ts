@@ -27,6 +27,11 @@ export class CodePulseMcpServerDefinitionProvider implements vscode.McpServerDef
     this._onDidChangeMcpServerDefinitions.fire();
   }
 
+  /** Fired when the workspace becomes trusted, so the definition withheld until then is offered. */
+  notifyTrustGranted(): void {
+    this._onDidChangeMcpServerDefinitions.fire();
+  }
+
   /**
    * Called eagerly and often -- must NOT do anything requiring user
    * interaction (per this API's own contract). Returns a placeholder
@@ -35,8 +40,15 @@ export class CodePulseMcpServerDefinitionProvider implements vscode.McpServerDef
    * editor actually needs to start the server.
    */
   provideMcpServerDefinitions(): vscode.ProviderResult<vscode.McpStdioServerDefinition[]> {
-    const command = vscode.workspace.getConfiguration("codepulse").get<string>("serverCommand", "codepulse");
-    const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+    // This definition names a program VS Code will start with the API key in its environment, so it is only offered
+    // in a trusted workspace (and `codepulse.serverCommand` is machine-scoped: a repository cannot set it).
+    if (!vscode.workspace.isTrusted) {
+      return [];
+    }
+    const command = vscode.workspace.getConfiguration("codepulse").get<string>("serverCommand", "codepulse").trim();
+    if (command === "") {
+      return [];
+    }
     return [
       new vscode.McpStdioServerDefinition(
         "CodePulse",
@@ -91,6 +103,7 @@ export function registerMcpProvider(
   const provider = new CodePulseMcpServerDefinitionProvider(auth);
   context.subscriptions.push(
     vscode.lm.registerMcpServerDefinitionProvider("codepulse.mcpServers", provider),
+    vscode.workspace.onDidGrantWorkspaceTrust(() => provider.notifyTrustGranted()),
   );
   return provider;
 }

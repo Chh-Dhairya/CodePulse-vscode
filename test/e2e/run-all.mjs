@@ -32,6 +32,8 @@ const SCENARIOS = [
   { name: "core", file: "core.mjs", needsServer: true },
   { name: "folders", file: "folders.mjs", needsServer: true },
   { name: "server-launch", file: "server-launch.mjs", needsServer: false },
+  { name: "hostile-workspace", file: "hostile-workspace.mjs", needsServer: false },
+  { name: "dont-ask-again", file: "dont-ask-again.mjs", needsServer: false },
   { name: "workspace-index-mcp", file: "workspace-index-mcp.mjs", needsServer: true },
 ];
 

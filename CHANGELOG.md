@@ -4,6 +4,24 @@ All notable changes to the CodePulse VS Code extension are documented in this fi
 
 ## [Unreleased]
 
+Security (found while checking the extension was safe to publish; these change behaviour):
+
+- Fixed: a repository could choose which program the extension runs. `codepulse.serverCommand` was run with `shell: true` and could be set by a project's own `.vscode/settings.json`, so opening a hostile repository and clicking the "Start Server" button ran an arbitrary command. `codepulse.serverCommand` and `codepulse.serverUrl` are now machine-scoped (user settings only), the server is started as a single program with no shell, and nothing is started in an untrusted workspace. The same applies to the MCP server definition, which carries the API key in its environment.
+- Fixed: a repository could redirect the API key. A workspace `codepulse.serverUrl` made the extension send the stored key to whatever address the project named. It is machine-scoped now, as above.
+- Changed (a consequence of the two fixes): `codepulse.serverUrl` and `codepulse.serverCommand` can no longer be set per project; set them in user settings. `codepulse.serverCommand` is one program name or path (it used to be passed to a shell, so a command line such as `python -m codepulse` worked; use the `codepulse` executable's path).
+- The manifest now declares limited support in untrusted workspaces and no support in virtual workspaces.
+- Tests: 24 new unit tests (the launch plan, launch-error messages, and guards on the manifest, `.vscodeignore` and README) and two new real-window scenarios, `hostile-workspace` and `dont-ask-again` (49 end-to-end checks in all). `hostile-workspace` was run against the previous code first: there the hostile repository's command ran and its decoy server received requests.
+
+Start-up prompt and launch errors:
+
+- The "Start one locally now?" prompt shows the exact command line it will run, has a **Don't Ask Again** button (sets `codepulse.autoLaunchServer` to `false`), and is not shown when no folder is open or the workspace is untrusted.
+- A server that cannot be started (backend not installed, not executable, a Windows `.cmd` wrapper) is reported at once with what to do about it, instead of after the 10-second wait.
+
+Packaging and documentation:
+
+- The CI workflow file is no longer shipped inside the `.vsix`.
+- The README is rewritten for Marketplace users: how to install the backend and what it needs, the setting scopes, privacy and security, supported languages, known limitations. The development-time "Publishing" section is gone.
+
 Publishing preparation:
 
 - Marked as a Marketplace preview release (`preview: true`); the README status line now says so instead of describing an in-progress phase.
