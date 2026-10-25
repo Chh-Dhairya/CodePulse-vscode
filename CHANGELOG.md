@@ -4,6 +4,11 @@ All notable changes to the CodePulse VS Code extension are documented in this fi
 
 ## [Unreleased]
 
+First-run flow (needs the backend that adds `codepulse key create` and the per-user database; both ship in `codepulse-engine` 0.1.0):
+
+- Fixed: a new user could not get a first API key. The key prompt and README said "create one with the CodePulse CLI", but the CLI had no such command, and the server endpoint needs a key that already exists. They now give the exact command, `codepulse key create --repo <your folder>`, which the backend now provides: it prints the key once and registers the folder, so Set API Key and Index Workspace work straight away.
+- Changed: CodePulse keeps its database in your per-user data directory, not inside the project you opened. Before, the server the extension started wrote a `codepulse.db` into every project (and into the MCP server's working directory); the README now says where the data lives.
+
 Security (found while checking the extension was safe to publish; these change behaviour):
 
 - Fixed: a repository could choose which program the extension runs. `codepulse.serverCommand` was run with `shell: true` and could be set by a project's own `.vscode/settings.json`, so opening a hostile repository and clicking the "Start Server" button ran an arbitrary command. `codepulse.serverCommand` and `codepulse.serverUrl` are now machine-scoped (user settings only), the server is started as a single program with no shell, and nothing is started in an untrusted workspace. The same applies to the MCP server definition, which carries the API key in its environment.

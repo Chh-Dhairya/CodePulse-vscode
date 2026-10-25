@@ -30,13 +30,19 @@ Supported languages: Python, JavaScript and TypeScript. Files in other languages
   It needs **Python 3.11 or 3.12**. The install is large (about 2.4 GB in a clean Windows test; it pulls in PyTorch), and the first time you index, it downloads a small embedding model (about 90 MB). Indexing runs on the CPU: a project of around 100 files takes a couple of minutes the first time, and later updates are much faster.
 
   On Windows, if `pip` stops with a "path too long" error, install into a virtual environment at a short path (for example `C:\cp`) or [enable long paths](https://pip.pypa.io/warnings/enable-long-paths).
-- **An API key** for the repository you want to use. Create one with the CodePulse command line, or through the server's `POST /v1/admin/keys` endpoint if you already hold an admin key.
+- **An API key** for the folder you want to use. Make your first one on the command line (it prints the key once):
+
+  ```bash
+  codepulse key create --repo path/to/your/project
+  ```
+
+  Later keys can also come from the server's `POST /v1/admin/keys` endpoint if you hold an admin key.
 
 ## Getting started
 
 1. Install this extension and the backend (above).
 2. Open the folder you want CodePulse to understand.
-3. Run **CodePulse: Set API Key** from the Command Palette and paste in your key.
+3. In a terminal, run `codepulse key create --repo <your folder>` and copy the key it prints. Then run **CodePulse: Set API Key** from the Command Palette and paste it in.
 4. If no server is running, the extension offers to start one for you. The prompt shows the exact command it will run. You can also run **CodePulse: Start Local Server** yourself, or **CodePulse: Check Server Connection** at any time.
 5. Run **CodePulse: Index Workspace**, then watch the status bar (bottom left): it shows the connection state and, once the folder is indexed, its symbol count.
 
@@ -56,6 +62,7 @@ Your API key is not a setting. It is stored in VS Code's `SecretStorage`, set th
 
 ## Privacy and security
 
+- CodePulse keeps its database in your **per-user data directory**, not inside your project, so nothing is written into the folders you open and there is nothing to commit by accident.
 - There is **no telemetry**. The only network traffic is between the extension and the server address you configured, which is on your own machine by default.
 - The extension never starts a program without asking, and the prompt shows the exact command line. In an **untrusted workspace** (Restricted Mode) it never starts a server and does not register its MCP server; search and navigation still work against a server that is already running.
 - Your API key is kept in `SecretStorage`. It is passed to the MCP server through an environment variable, never as a command-line argument, so it does not show up in a process listing.

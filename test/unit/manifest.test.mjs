@@ -62,3 +62,15 @@ test("the README documents the setting scopes and the Don't Ask Again behaviour"
   assert.match(readme, /user settings/i);
   assert.match(readme, /Don't Ask Again/);
 });
+
+test("the key prompt and README give the exact command that creates a first API key", () => {
+  // The CLI has `codepulse key create`; before it existed the prompt said "create one with the CLI" and nothing did.
+  const readme = read("README.md");
+  assert.match(readme, /codepulse key create --repo/);
+  assert.match(read("src/auth.ts"), /codepulse key create --repo/);
+  assert.doesNotMatch(read("src/auth.ts"), /admin\/keys/, "the first key cannot come from an endpoint that needs a key");
+});
+
+test("the README says the database lives in the user's data directory, not in the project", () => {
+  assert.match(read("README.md"), /per-user data directory/i);
+});

@@ -21,7 +21,7 @@ export class AuthManager {
   async setApiKeyInteractive(): Promise<boolean> {
     const value = await vscode.window.showInputBox({
       title: "CodePulse API Key",
-      prompt: "Enter a CodePulse API key (starts with cpk_). Create one with `codepulse` CLI or the /v1/admin/keys endpoint.",
+      prompt: "Enter a CodePulse API key (starts with cpk_). To create one, run in a terminal: codepulse key create --repo <your project folder>",
       password: true,
       ignoreFocusOut: true,
       validateInput: (v) => (v && v.trim().length > 0 ? undefined : "API key cannot be empty"),
