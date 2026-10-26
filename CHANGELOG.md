@@ -4,6 +4,12 @@ All notable changes to the CodePulse VS Code extension are documented in this fi
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-26
+
+First release-channel version. The code is the same as the 0.1.0 pre-release. That listing was published ONLY as a pre-release, so the Marketplace's normal Install button failed with "Can't install release version of 'CodePulse Code Intelligence' extension because it has no release version" and offered "Install Pre-Release" instead. Publishing a release version fixes that. (By VS Code's convention pre-release versions use odd minor numbers and releases even ones, hence 0.2.0.) The extension is still marked as a preview.
+
+## [0.1.0] - 2026-10-26 (pre-release)
+
 Publishing metadata:
 
 - Renamed: the Marketplace rejected the upload because the extension name `codepulse-vscode` already belongs to another extension (`aicodepulse.codepulse-vscode`); names must be unique across publishers. The extension is now `codepulse-code-intelligence` with the display name "CodePulse Code Intelligence", so its id is `codepulse-repository-indexer.codepulse-code-intelligence`. (The GitHub repository keeps the name `codepulse-vscode`.)

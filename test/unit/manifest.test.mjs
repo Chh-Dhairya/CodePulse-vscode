@@ -104,3 +104,10 @@ test("the extension name is not one the Marketplace already has, and the display
   assert.notEqual(pkg.displayName.trim().toLowerCase(), "codepulse");
   assert.ok(pkg.displayName.length >= 12, "a display name longer than the bare product name");
 });
+
+test("the changelog has a section for the version in package.json", () => {
+  // Every upload to the Marketplace is a new version and the listing's Changelog tab shows this file.
+  // (No regex on purpose: an escaped bracket silently became a character class once and the test could not fail.)
+  const headings = read("CHANGELOG.md").split(/\r?\n/).filter((line) => line.startsWith("## "));
+  assert.ok(headings.some((line) => line.startsWith(`## [${pkg.version}]`)), `no "## [${pkg.version}]" heading in: ${headings.join(" | ")}`);
+});

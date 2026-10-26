@@ -2,7 +2,7 @@
   "name": "codepulse-code-intelligence",
   "displayName": "CodePulse Code Intelligence",
   "description": "Local-first, agent-native code intelligence for VS Code — search, symbol navigation, references, and impact analysis, powered by a local CodePulse server.",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "publisher": "codepulse-repository-indexer",
   "license": "MIT",
   "repository": {

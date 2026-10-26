@@ -26,13 +26,14 @@ const check = (id, ok, evidence) => {
 const sh = (cmd, cwd = EXT_DEV) => execSync(cmd, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
 
 // E2E_FROM_MARKETPLACE=1: do not build anything; install the extension BY ID from the live Marketplace, exactly as a
-// user does, and run the same activation checks on what the Marketplace really serves. Used after every release.
+// user does (the RELEASE channel, as the Install button does; E2E_PRERELEASE=1 asks for the pre-release channel instead),
+// and run the same activation checks on what the Marketplace really serves. Used after every release.
 const fromMarketplace = process.env.E2E_FROM_MARKETPLACE === "1";
 const userData = path.join(PROFILE, "user-data");
 fs.rmSync(installedDir, { recursive: true, force: true });
 
 if (fromMarketplace) {
-  const out = sh(`"${codeCli}" --install-extension ${extensionId} --pre-release --extensions-dir "${installedDir}" --user-data-dir "${userData}"`);
+  const out = sh(`"${codeCli}" --install-extension ${extensionId}${process.env.E2E_PRERELEASE === "1" ? " --pre-release" : ""} --extensions-dir "${installedDir}" --user-data-dir "${userData}"`);
   check("P1 the Marketplace serves the package: VS Code installs it by id", /successfully installed/i.test(out), out.trim());
 } else {
   // --- build the package and look inside it
