@@ -25,22 +25,32 @@ const check = (id, ok, evidence) => {
 };
 const sh = (cmd, cwd = EXT_DEV) => execSync(cmd, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
 
-// --- build the package and look inside it
-fs.rmSync(packaged, { recursive: true, force: true });
+// E2E_FROM_MARKETPLACE=1: do not build anything; install the extension BY ID from the live Marketplace, exactly as a
+// user does, and run the same activation checks on what the Marketplace really serves. Used after every release.
+const fromMarketplace = process.env.E2E_FROM_MARKETPLACE === "1";
+const userData = path.join(PROFILE, "user-data");
 fs.rmSync(installedDir, { recursive: true, force: true });
-fs.mkdirSync(packaged, { recursive: true });
-sh(`npx vsce package --out "${vsix}"`);
-const listing = sh("npx vsce ls").split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
-const forbidden = listing.filter((f) => /^(src|test|\.github|\.e2e|\.vscode|node_modules)\//.test(f.replace(/\\/g, "/")));
-const required = ["package.json", "README.md", "LICENSE", "CHANGELOG.md", "out/extension.js", "media/icon.png"];
-const missing = required.filter((f) => !listing.map((l) => l.replace(/\\/g, "/")).includes(f));
-check("P1 the package contains what it needs and no development files", forbidden.length === 0 && missing.length === 0,
-  `${listing.length} files; unwanted: ${forbidden.join(",") || "none"}; missing: ${missing.join(",") || "none"}`);
 
-// --- install it with VS Code's own CLI into a fresh directory
-sh(`"${codeCli}" --install-extension "${vsix}" --extensions-dir "${installedDir}" --user-data-dir "${path.join(PROFILE, "user-data")}"`);
-const installed = sh(`"${codeCli}" --list-extensions --show-versions --extensions-dir "${installedDir}" --user-data-dir "${path.join(PROFILE, "user-data")}"`);
-check("P2 VS Code installs the package and lists it with the right id and version",
+if (fromMarketplace) {
+  const out = sh(`"${codeCli}" --install-extension ${extensionId} --pre-release --extensions-dir "${installedDir}" --user-data-dir "${userData}"`);
+  check("P1 the Marketplace serves the package: VS Code installs it by id", /successfully installed/i.test(out), out.trim());
+} else {
+  // --- build the package and look inside it
+  fs.rmSync(packaged, { recursive: true, force: true });
+  fs.mkdirSync(packaged, { recursive: true });
+  sh(`npx vsce package --out "${vsix}"`);
+  const listing = sh("npx vsce ls").split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+  const forbidden = listing.filter((f) => /^(src|test|\.github|\.e2e|\.vscode|node_modules)\//.test(f.replace(/\\/g, "/")));
+  const required = ["package.json", "README.md", "LICENSE", "CHANGELOG.md", "out/extension.js", "media/icon.png"];
+  const missing = required.filter((f) => !listing.map((l) => l.replace(/\\/g, "/")).includes(f));
+  check("P1 the package contains what it needs and no development files", forbidden.length === 0 && missing.length === 0,
+    `${listing.length} files; unwanted: ${forbidden.join(",") || "none"}; missing: ${missing.join(",") || "none"}`);
+
+  // --- install it with VS Code's own CLI into a fresh directory
+  sh(`"${codeCli}" --install-extension "${vsix}" --extensions-dir "${installedDir}" --user-data-dir "${userData}"`);
+}
+const installed = sh(`"${codeCli}" --list-extensions --show-versions --extensions-dir "${installedDir}" --user-data-dir "${userData}"`);
+check("P2 VS Code lists it with the right id and version",
   installed.toLowerCase().includes(`${extensionId}@${pkg.version}`.toLowerCase()), installed.trim());
 
 // --- run VS Code with ONLY the installed copy
