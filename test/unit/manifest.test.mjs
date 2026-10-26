@@ -94,3 +94,13 @@ test("the README links to the source and the issue tracker", () => {
   assert.ok(readme.includes(pkg.repository.url.replace(/\.git$/, "")), "the README should link the source repository");
   assert.ok(readme.includes(pkg.bugs.url), "the README should link the issue tracker");
 });
+
+test("the extension name is not one the Marketplace already has, and the display name is distinctive", () => {
+  // The Marketplace rejected an upload with "The extension 'codepulse-vscode' already exists in the Marketplace"
+  // (owned by aicodepulse.codepulse-vscode): unlike a publisher-qualified id, the `name` must be unique across
+  // publishers. 17 existing extensions already carry "codepulse" in their name, one displayed exactly "CodePulse".
+  assert.notEqual(pkg.name, "codepulse-vscode");
+  assert.match(pkg.name, /^[a-z0-9][a-z0-9-]*$/);
+  assert.notEqual(pkg.displayName.trim().toLowerCase(), "codepulse");
+  assert.ok(pkg.displayName.length >= 12, "a display name longer than the bare product name");
+});

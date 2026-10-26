@@ -6,6 +6,7 @@ All notable changes to the CodePulse VS Code extension are documented in this fi
 
 Publishing metadata:
 
+- Renamed: the Marketplace rejected the upload because the extension name `codepulse-vscode` already belongs to another extension (`aicodepulse.codepulse-vscode`); names must be unique across publishers. The extension is now `codepulse-code-intelligence` with the display name "CodePulse Code Intelligence", so its id is `codepulse-repository-indexer.codepulse-code-intelligence`. (The GitHub repository keeps the name `codepulse-vscode`.)
 - The publisher is now `codepulse-repository-indexer`: `codepulse` is registered by someone else, and the Marketplace/`vsce` accept only letters, digits and hyphens. The manifest and README now link the source repository, the issue tracker and the home page (`vsce package` no longer warns about a missing `repository`).
 - Tests: a `packaged-install` scenario that installs the built `.vsix` into a fresh VS Code with no development path (every other scenario loads the source folder); guards that the publisher id is valid and the repository metadata is present. Two races in the end-to-end harness were fixed along the way (the API-key helper typed into the closing Command Palette; three scenarios looked at the self-dismissing "Start Server?" notification too late). The extension's own code did not change.
 
