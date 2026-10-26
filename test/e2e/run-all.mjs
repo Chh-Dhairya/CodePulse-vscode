@@ -6,6 +6,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { CODE_EXE, EXT_DEV, FIXTURES, loadFixtures } from "./lib/cdp.mjs";
+import { scenarioOutcome } from "./lib/judge.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 let fx = loadFixtures();
@@ -84,6 +85,14 @@ for (const sc of chosen) {
   const run = spawnSync(process.execPath, [path.join(HERE, "scenarios", sc.file)], { encoding: "utf8", timeout: 20 * 60 * 1000 });
   stopServer();
   const out = (run.stdout || "") + (run.stderr || "");
+  // A scenario that crashed or stopped early prints no FAIL line, so it must be judged on how it ended, not only on its lines
+  // (it used to be reported as "2 passed, 0 failed" when VS Code refused to start and only the first 2 of 5 checks ran).
+  const outcome = scenarioOutcome({ status: run.status, signal: run.signal, error: run.error, output: out });
+  if (outcome.crashed) {
+    failed++;
+    failures.push(`${sc.name}: ${outcome.reason.split(/\r?\n/)[0]}`);
+    console.log(`SCENARIO DID NOT FINISH ${sc.name}: ${outcome.reason}`);
+  }
   for (const line of out.split(/\r?\n/)) {
     const m = line.match(/^(PASS|FAIL) (\S+)/);
     if (!m) { if (/HARNESS ERROR/.test(line)) { console.log(line); failures.push(`${sc.name}: harness error`); failed++; } continue; }
