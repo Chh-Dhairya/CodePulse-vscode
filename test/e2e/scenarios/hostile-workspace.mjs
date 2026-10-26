@@ -68,8 +68,9 @@ const before = listeners().filter((l) => !l.startsWith(`${DECOY_PORT}:`));
 const child = launchCode(repo, 9333, { PATH: `${fx.binDir};${process.env.PATH}` });
 const cdp = await Cdp.connect(9333, 120000);
 try {
-  await sleep(5000);
-  await setApiKey(cdp, fx.key);
+  // The offer is a notification VS Code hides by itself some 10-15 s after it appears (about 3 s after the window
+  // connects), so look at it FIRST and act on it at once; setting the API key takes several seconds and used to come
+  // first, which raced the notification's self-dismissal.
   const toast = await waitFor(() => toastText(cdp), (t) => /Start one locally/i.test(t), 40000);
   await cdp.shot("D2-01-offer");
   check("D2a the offer shows the real command line from the USER's settings (not the repository's)",
@@ -78,6 +79,7 @@ try {
 
   const clicked = await clickButton(cdp, "Start Server");
   check("D2c the Start Server button can be clicked", clicked, String(clicked));
+  await setApiKey(cdp, fx.key); // while the server starts
   await sleep(35000);
 
   const ls = listeners();

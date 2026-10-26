@@ -4,6 +4,11 @@ All notable changes to the CodePulse VS Code extension are documented in this fi
 
 ## [Unreleased]
 
+Publishing metadata:
+
+- The publisher is now `codepulse-repository-indexer`: `codepulse` is registered by someone else, and the Marketplace/`vsce` accept only letters, digits and hyphens. The manifest and README now link the source repository, the issue tracker and the home page (`vsce package` no longer warns about a missing `repository`).
+- Tests: a `packaged-install` scenario that installs the built `.vsix` into a fresh VS Code with no development path (every other scenario loads the source folder); guards that the publisher id is valid and the repository metadata is present. Two races in the end-to-end harness were fixed along the way (the API-key helper typed into the closing Command Palette; three scenarios looked at the self-dismissing "Start Server?" notification too late). The extension's own code did not change.
+
 First-run flow (needs the backend that adds `codepulse key create` and the per-user database; both ship in `codepulse-engine` 0.1.0):
 
 - Fixed: a new user could not get a first API key. The key prompt and README said "create one with the CodePulse CLI", but the CLI had no such command, and the server endpoint needs a key that already exists. They now give the exact command, `codepulse key create --repo <your folder>`, which the backend now provides: it prints the key once and registers the folder, so Set API Key and Index Workspace work straight away.
@@ -15,7 +20,7 @@ Security (found while checking the extension was safe to publish; these change b
 - Fixed: a repository could redirect the API key. A workspace `codepulse.serverUrl` made the extension send the stored key to whatever address the project named. It is machine-scoped now, as above.
 - Changed (a consequence of the two fixes): `codepulse.serverUrl` and `codepulse.serverCommand` can no longer be set per project; set them in user settings. `codepulse.serverCommand` is one program name or path (it used to be passed to a shell, so a command line such as `python -m codepulse` worked; use the `codepulse` executable's path).
 - The manifest now declares limited support in untrusted workspaces and no support in virtual workspaces.
-- Tests: 24 new unit tests (the launch plan, launch-error messages, and guards on the manifest, `.vscodeignore` and README) and two new real-window scenarios, `hostile-workspace` and `dont-ask-again` (49 end-to-end checks in all). `hostile-workspace` was run against the previous code first: there the hostile repository's command ran and its decoy server received requests.
+- Tests: 24 new unit tests (the launch plan, launch-error messages, and guards on the manifest, `.vscodeignore` and README) and two new real-window scenarios, `hostile-workspace` and `dont-ask-again` and a `packaged-install` scenario that installs the built `.vsix` into a fresh VS Code and checks it activates, connects and registers its commands (54 end-to-end checks in all). `hostile-workspace` was run against the previous code first: there the hostile repository's command ran and its decoy server received requests.
 
 Start-up prompt and launch errors:
 

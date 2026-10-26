@@ -3,7 +3,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { execSync } from "node:child_process";
-import { launchCode, Cdp, writeSettings, sleep, FIXTURES, PROFILE, loadFixtures, toastText, clickButton, waitFor, setApiKey } from "../lib/cdp.mjs";
+import { launchCode, Cdp, writeSettings, sleep, FIXTURES, PROFILE, loadFixtures, toastText, clickButton, waitFor } from "../lib/cdp.mjs";
 
 const PORT = process.env.D3_PORT || "8203";
 const fx = loadFixtures();
@@ -34,8 +34,9 @@ writeSettings({
 const child = launchCode(path.join(FIXTURES, "Test_Repo"), 9333, { PATH: `${fx.binDir};${process.env.PATH}` });
 const cdp = await Cdp.connect(9333, 120000);
 try {
-  await sleep(5000);
-  await setApiKey(cdp, fx.key);
+  // The offer is a notification VS Code hides by itself some 10-15 s after it appears (about 3 s after the window
+  // connects), so look at it FIRST and act on it at once; setting the API key takes several seconds and used to come
+  // first, which raced the notification's self-dismissal.
   const toast = await waitFor(() => toastText(cdp), (t) => /Start one locally/i.test(t), 40000);
   check("D3a the offer appears", /No CodePulse server is reachable/.test(toast), toast);
 

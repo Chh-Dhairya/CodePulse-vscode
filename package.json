@@ -3,8 +3,16 @@
   "displayName": "CodePulse",
   "description": "Local-first, agent-native code intelligence for VS Code — search, symbol navigation, references, and impact analysis, powered by a local CodePulse server.",
   "version": "0.1.0",
-  "publisher": "codepulse",
+  "publisher": "codepulse-repository-indexer",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Chh-Dhairya/codepulse-vscode.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Chh-Dhairya/codepulse-vscode/issues"
+  },
+  "homepage": "https://github.com/Chh-Dhairya/codepulse-vscode#readme",
   "preview": true,
   "icon": "media/icon.png",
   "engines": {

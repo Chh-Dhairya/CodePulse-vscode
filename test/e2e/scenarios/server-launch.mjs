@@ -37,14 +37,16 @@ console.log("listeners before:", before.join(",") || "(none)");
 const child = launchCode(path.join(FIXTURES, "Test_Repo"), 9333, { PATH: `${BIN_DIR};${process.env.PATH}` });
 const cdp = await Cdp.connect(9333, 120000);
 try {
-  await sleep(5000);
-  await setApiKey(cdp, loadFixtures().key);
+  // The offer is a notification VS Code hides by itself some 10-15 s after it appears (about 3 s after the window
+  // connects), so look at it FIRST and act on it at once; setting the API key takes several seconds and used to come
+  // first, which raced the notification's self-dismissal.
   const toast = await waitFor(() => toastText(cdp), (t) => /Start one locally/i.test(t), 40000);
   await cdp.shot("D1-01-offer");
   check("D1a no reachable server -> the extension offers to start one", /No CodePulse server is reachable/.test(toast) && /Start Server/.test(toast), toast);
 
   const clicked = await clickButton(cdp, "Start Server");
   check("D1b the Start Server button can be clicked", clicked, String(clicked));
+  await setApiKey(cdp, loadFixtures().key); // while the server starts; the status bar picks the key up once it is ready
 
   // Give it longer than the extension's own 10s ready-wait, then see what really happened.
   await sleep(30000);

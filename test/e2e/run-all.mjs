@@ -35,6 +35,7 @@ const SCENARIOS = [
   { name: "hostile-workspace", file: "hostile-workspace.mjs", needsServer: false },
   { name: "dont-ask-again", file: "dont-ask-again.mjs", needsServer: false },
   { name: "workspace-index-mcp", file: "workspace-index-mcp.mjs", needsServer: true },
+  { name: "packaged-install", file: "packaged-install.mjs", needsServer: true },
 ];
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));

@@ -4,6 +4,8 @@ Search, navigate and assess the impact of changes in a codebase from inside VS C
 
 **Status: preview (0.1.0).** The features below work and are covered by unit tests and a real-VS-Code end-to-end suite, but the extension has not had wide use yet, so expect rough edges (see [Known limitations](#known-limitations)).
 
+Source code: <https://github.com/Chh-Dhairya/codepulse-vscode>. Found a problem or want a feature? Open an issue at <https://github.com/Chh-Dhairya/codepulse-vscode/issues>. The backend engine lives at <https://github.com/Chh-Dhairya/CodePulse>.
+
 ## What it does
 
 - **CodePulse: Search** — one search box over hybrid keyword + semantic + graph search; pick a result to jump to it.
@@ -88,7 +90,7 @@ npm test          # unit tests
 
 Press `F5` in VS Code to launch an Extension Development Host with this extension loaded. `npm run package` builds an installable `.vsix`. The real-VS-Code end-to-end suite (`npm run test:e2e`, Windows only) is described in `test/e2e/README.md`.
 
-This extension is deliberately a separate project from the CodePulse backend (TypeScript against the VS Code API, versus the backend's Python): see `docs/CODEPULSE_CLIENT_STRATEGY.md` in the backend repository for the plan it is built against.
+This extension is deliberately a separate project from the CodePulse backend (TypeScript against the VS Code API, versus the backend's Python): see [`docs/CODEPULSE_CLIENT_STRATEGY.md`](https://github.com/Chh-Dhairya/CodePulse/blob/HEAD/docs/CODEPULSE_CLIENT_STRATEGY.md) in the backend repository for the plan it is built against.
 
 ## License
 

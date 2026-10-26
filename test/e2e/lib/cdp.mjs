@@ -39,12 +39,18 @@ export function writeSettings(settings) {
   fs.writeFileSync(path.join(dir, "settings.json"), JSON.stringify(settings, null, 2));
 }
 
-export function launchCode(target, port = 9333, env = {}) {
-  fs.mkdirSync(path.join(PROFILE, "extensions"), { recursive: true });
+/**
+ * `installed`: load the extension from an extensions directory it was INSTALLED into (a packaged .vsix), instead of
+ * from this source folder in development mode. The default (development mode) is what almost every scenario wants;
+ * only `packaged-install` needs the real thing, since development mode would hide a problem with the package itself.
+ */
+export function launchCode(target, port = 9333, env = {}, { installed = null } = {}) {
+  const extensionsDir = installed ?? path.join(PROFILE, "extensions");
+  fs.mkdirSync(extensionsDir, { recursive: true });
   const args = [
     `--user-data-dir=${path.join(PROFILE, "user-data")}`,
-    `--extensions-dir=${path.join(PROFILE, "extensions")}`,
-    `--extensionDevelopmentPath=${EXT_DEV}`,
+    `--extensions-dir=${extensionsDir}`,
+    ...(installed ? [] : [`--extensionDevelopmentPath=${EXT_DEV}`]),
     `--remote-debugging-port=${port}`,
     "--disable-workspace-trust",
     "--skip-release-notes",
@@ -225,7 +231,17 @@ export async function waitFor(fn, pred, timeoutMs = 30000, step = 500) {
  */
 export async function setApiKey(cdp, key) {
   await runCommand(cdp, "CodePulse: Set API Key");
-  await waitFor(() => quickInputText(cdp), (t) => /API Key/i.test(t), 15000);
+  // Wait for the extension's own MASKED input box, not for any widget text containing "API Key": the Command Palette
+  // row ("CodePulse: Set API Key") matches that at once, so the key used to be typed into the closing palette and the
+  // real box then opened empty. It only went wrong when the extension host was slow to answer (a freshly installed
+  // extension is), so it showed up first in the packaged-install scenario.
+  await waitFor(
+    // (Not "has keyboard focus": while a notification such as "Start Server?" is on screen the box can be shown
+    // without being the active element, and waiting for focus then burns the whole timeout.)
+    () => cdp.eval(`(() => { const w = document.querySelector('.quick-input-widget'); const i = w && w.querySelector('.quick-input-box input'); return !!i && i.type === 'password' && getComputedStyle(w).display !== 'none'; })()`),
+    (ready) => ready === true,
+    30000,
+  );
   await cdp.insert(key);
   await sleep(300);
   await cdp.enter();

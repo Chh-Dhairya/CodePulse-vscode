@@ -74,3 +74,23 @@ test("the key prompt and README give the exact command that creates a first API 
 test("the README says the database lives in the user's data directory, not in the project", () => {
   assert.match(read("README.md"), /per-user data directory/i);
 });
+
+test("the publisher id is one the Marketplace and vsce accept, and is not the taken 'codepulse'", () => {
+  // vsce rejects anything but letters, digits and hyphens ("Expected the identifier of a publisher, not its
+  // human-friendly name"); 'codepulse' is registered by another account, so it cannot be published under.
+  assert.match(pkg.publisher, /^[a-z0-9][a-z0-9-]*$/i);
+  assert.notEqual(pkg.publisher.toLowerCase(), "codepulse");
+});
+
+test("the manifest says where the source, the issue tracker and the home page are", () => {
+  assert.equal(pkg.repository?.type, "git");
+  assert.match(pkg.repository.url, /^https:\/\/github\.com\/Chh-Dhairya\/[\w.-]+\.git$/);
+  assert.match(pkg.bugs?.url ?? "", /^https:\/\/github\.com\/Chh-Dhairya\/[\w.-]+\/issues$/);
+  assert.match(pkg.homepage ?? "", /^https:\/\/github\.com\/Chh-Dhairya\/[\w.-]+#readme$/);
+});
+
+test("the README links to the source and the issue tracker", () => {
+  const readme = read("README.md");
+  assert.ok(readme.includes(pkg.repository.url.replace(/\.git$/, "")), "the README should link the source repository");
+  assert.ok(readme.includes(pkg.bugs.url), "the README should link the issue tracker");
+});
